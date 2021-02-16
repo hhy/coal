@@ -18,6 +18,7 @@ class __TaState extends State<_Ta> {
   static const platform = const MethodChannel('samples.flutter.dev/battery');
   static const _channel =
       const MethodChannel('com.example.methodchannel/interop');
+      static const eventChannel=const EventChannel("samples.flutter.dev/stream");
 
   set s(String s) {
     setState(() {
@@ -60,7 +61,7 @@ class __TaState extends State<_Ta> {
     var appBar = AppBar(title: Text('abc'));
     var btn = TextButton(
       onPressed: () async {
-        var r = SearchRequest();
+        // var r = SearchRequest();
 
         // var o = await api.search(r);
         // var a = o.result;
@@ -73,9 +74,13 @@ class __TaState extends State<_Ta> {
       },
       child: Text('hi'),
     );
+    var btn2=TextButton(onPressed: (){
+       this.eventChannel.receiveBroadcastStream().listen(speechResultsHandler, onError: speechResultErrorHandler);
+
+    }, child:Text("start listen"));
     var msg = Text(s);
     var body = Column(
-      children: [btn, msg],
+      children: [btn, msg, btn2],
     );
     var home = Scaffold(
       appBar: appBar,
