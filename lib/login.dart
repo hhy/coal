@@ -1,35 +1,24 @@
+import 'package:coal/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_login/flutter_login.dart';
-import 'dashboard.dart';
 
-var login = () => runApp(MaterialApp(home: LoginScreen()));
+// var login = () => runApp(MaterialApp(home: LoginScreen()));
 
-const users = const {'admin': 'admin', 'good': 'good', 'bad': 'bad'};
+// const users = const {'admin': 'admin', 'good': 'good', 'bad': 'bad'};
 
 class LoginScreen extends StatelessWidget {
-  Duration get loginTime => Duration(milliseconds: 2250);
+  final Login _login;
+  LoginScreen(this._login);
 
-  Future<String> _authUser(LoginData data) {
-    print('Name: ${data.name}, Password: ${data.password}');
-    return Future.delayed(loginTime).then((_) {
-      if (!users.containsKey(data.name)) {
-        return 'Username not exists';
-      }
-      if (users[data.name] != data.password) {
-        return 'Password does not match';
-      }
-      return "";
-    });
-  }
+  Duration get loginTime => Duration(seconds: 1);
 
   Future<String> _recoverPassword(String name) {
-    print('Name: $name');
-    return Future.delayed(loginTime).then((_) {
-      if (!users.containsKey(name)) {
-        return 'Username not exists';
-      }
-      return "";
-    });
+    return Future.delayed(
+        loginTime, () => 'recovery password is not implemented yet');
+  }
+
+  Future<String> _signUp(LoginData data) {
+    return Future.delayed(loginTime, () => 'signup is not implemented yet');
   }
 
   @override
@@ -45,12 +34,13 @@ class LoginScreen extends StatelessWidget {
         print('$r');
         return r;
       },
-      onLogin: _authUser,
-      onSignup: _authUser,
+      // onLogin: _authUser,
+      onLogin: (loginData) => _login(loginData.name, loginData.password),
+      onSignup: _signUp,
       onSubmitAnimationCompleted: () {
-        Navigator.of(context).pushReplacement(MaterialPageRoute(
-          builder: (context) => DashboardScreen(),
-        ));
+        print('navigating to home');
+        Navigator.of(context)
+            .pushReplacementNamed(CoalApp.pHome, arguments: null);
       },
       onRecoverPassword: _recoverPassword,
     );

@@ -1,75 +1,165 @@
-// import 'package:coal/getOnVehicle.dart';
+import 'package:coal/select_vehicle.dart';
 import 'package:flutter/material.dart';
-import 'package:smart_select/smart_select.dart';
+import 'package:flutter_ble_lib/flutter_ble_lib.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-var dash = () => runApp(DashboardScreen());
+import 'main.dart';
 
-class DashboardScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    // Future.delayed(Duration.zero, () => _showAlert(context));
-    final title = 'Hi Peer';
+enum BleMsgType { newPeripheral, request, response }
 
-    var selectVehicleWidget = SmartSelect<String>.single(
-      // The primary content of the widget.
-      // Used in trigger widget and header option
-      title: 'select a vehicle',
+class BleMsg {
+  final String username;
+  final String plateNum;
+  final String id;
+  BleMsgType mt;
+  BleMsg({this.username, this.plateNum, this.id, this.mt});
+}
 
-      // The text displayed when the value is null
-      placeholder: 'Select one',
-
-      // The current value of the single choice widget.
-      // @required T value,
-      value: '',
-
-      // Called when single choice value changed
-      // @required ValueChanged<S2SingleState<T>> onChange,
-      onChange: (e) {
-        // setState(() {});
-      },
-
-      // choice item list
-      // List<S2Choice<T>> choiceItems,
-      choiceItems: ['monday', 'tue', 'wed', 'thu'].map((e) {
-        return S2Choice<String>(value: e, title: '${e}_$e');
-      }).toList(),
-
-      // other available configuration
-      // explained below
-    );
-    var sel = selectVehicleWidget;
-    // var body1 = Column(children: [sel, Divider(), vFeatures]);
-    // var body1 = Column(children: [Text('fff'), Divider(), vFeatures]);
-    // var body = Column(children: [sel, Divider()]);
-    // var body = Column(children: [Divider(), vFeatures]);
-    var body = Column(children: [sel, Divider()]);
-
-    return MaterialApp(
-      title: title,
-      home: Scaffold(
-        appBar: AppBar(
-          title: Text(title),
-        ),
-        body: body,
-      ),
-    );
+class BleCubit extends Cubit<BleMsg> {
+  BleCubit(BleMsg state) : super(state);
+  Stream<BleMsg> peripheralFound(String username, String plateNum) async* {
+    var msg = BleMsg(
+        username: username,
+        plateNum: plateNum,
+        mt: BleMsgType.newPeripheral,
+        id: '');
+    yield msg;
   }
 }
 
-void _showAlert(BuildContext context) {
-  showDialog(
-      context: context,
-      builder: (BuildContext context) => AlertDialog(
-            title: new Text("Alert Dialog title"),
-            content: new Text("Alert Dialog body"),
-            actions: <Widget>[
-              // usually buttons at the bottom of the dialog
-              new FlatButton(
-                child: new Text("Close"),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
+var runDash = () => runApp(MaterialApp(
+    home: DashboardScreen(user: User(name: 'good', phone: '232434'))));
+
+class DashboardScreen extends StatefulWidget {
+  final User user;
+  DashboardScreen({Key key, this.user}) : super(key: key);
+
+  @override
+  _DashboardScreenState createState() => _DashboardScreenState(user);
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  final User user;
+
+  final _vehicle = <Vehicle>[
+    null,
+  ];
+  final _isDriving = <bool>[false];
+  _DashboardScreenState(this.user);
+
+  Vehicle get vehicle => _vehicle[0];
+  set vehicle(Vehicle v) => setState(() {
+        _vehicle[0] = v;
+      });
+
+  bool get isDriving => _isDriving[0];
+  set isDriving(bool b) => setState(() {
+        _isDriving[0] = b;
+      });
+
+  void startScanning() async {
+    BleManager bleManager = BleManager();
+    await bleManager.createClient(); //ready to go!
+    bleManager.startPeripheralScan();
+    // your peripheral logic
+    bleManager.destroyClient();
+  }
+
+  void startPeripheral() async {
+    BleManager bleManager = BleManager();
+    await bleManager.createClient(); //ready to go!
+    // bleManager
+    // your peripheral logic
+    bleManager.destroyClient();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Future.delayed(Duration.zero, () => _showAlert(context));
+    final title = 'Hi ${user.name}';
+
+    var btn = TextButton(
+        child: Text(
+            vehicle == null ? 'Please select vehicle' : '${vehicle.plateNum}'),
+        onPressed: () async {
+          var car = await Navigator.of(context)
+              .push(MaterialPageRoute(builder: (ctx) => SelectVehicle()));
+          var c = car ?? car as Vehicle;
+          vehicle = c;
+        });
+    var icon = Icon(vehicle == null
+        ? Icons.device_unknown
+        : (vehicle.vehicleType == VehicleType.Excavator
+            ? Icons.train
+            : Icons.local_taxi));
+    var ra = Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [icon, btn],
+    );
+    var rb = Row(
+      children: [
+        Text(isDriving ? 'Stop Driving' : 'Start Drive'),
+        Switch(
+            value: isDriving,
+            onChanged: (v) {
+              isDriving = v;
+            }),
+      ],
+    );
+
+    var r = Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [ra, rb],
+    );
+    BleCubit bc = BleCubit(null);
+    var msgs = <BleMsg>[];
+    var devs = BlocBuilder<BleCubit, BleMsg>(
+        cubit: bc,
+        builder: (ctx, msg) {
+          msgs.add(msg);
+          return ListView(
+            children: [
+              Text('abc'),
+              ...msgs.where((e) => e != null).map((e) {
+                return ListTile(
+                  title: Text('${e.plateNum}[${e.username}] '),
+                );
+              }).toList()
             ],
-          ));
+          );
+        });
+    var body = Column(children: [r, Divider(), Expanded(child: devs)]);
+    // var body = Text('hello');
+    var bottomItems = user.name.startsWith('admin')
+        ? [
+            BottomNavigationBarItem(
+                icon: Icon(Icons.account_circle), label: "Users"),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.taxi_alert), label: "Vehicles"),
+          ]
+        : [
+            BottomNavigationBarItem(
+                icon: Icon(Icons.dashboard), label: "Dashboard"),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.table_chart), label: 'Records'),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.cloud), label: 'Communication')
+          ];
+    var home = Scaffold(
+      appBar: AppBar(
+        title: Text(title),
+        actions: [
+          IconButton(
+              icon: Icon(Icons.logout),
+              onPressed: () {
+                Navigator.of(context).pushReplacementNamed(CoalApp.pLogin);
+              }),
+        ],
+      ),
+      body: body,
+      bottomNavigationBar: BottomNavigationBar(items: bottomItems),
+    );
+
+    return home;
+  }
 }
