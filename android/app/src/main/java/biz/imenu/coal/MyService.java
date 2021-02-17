@@ -69,11 +69,11 @@ public class MyService extends Service {
                 Log.d(TAG, "run: b4 bc-ing");
                 try {
                     if(this._suicide) break;
-                    Thread.sleep(1000);
+                    Thread.sleep(2500);
                     Intent intent = new Intent();
                     intent.setAction("porn");
                     intent.putExtra("v", this._currentValue++);
-                    s.sendBroadcast(intent);
+                    //  s.sendBroadcast(intent);
                     Log.d(TAG, "run: braodcasting "+this._currentValue);
                 } catch (InterruptedException e) {
                     // TODO Auto-generated catch block

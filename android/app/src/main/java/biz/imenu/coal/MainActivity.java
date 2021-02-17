@@ -87,12 +87,12 @@ public class MainActivity extends FlutterActivity implements ServiceConnection, 
             Intent intent = new Intent(this, MyService.class);
             this.startService(intent);
             boolean b = this.bindService(intent, this, Context.BIND_AUTO_CREATE);
-            result.success("start & good");
+            result.success("started");
         } else if ("off".equals(act)) {
             Log.d(TAG, "configureFlutterEngine: stop service");
             // this.s.stopSelf();
             this.s.stop();
-            result.success("stop & good");
+            result.success("stopped");
         } else {
             Log.d(TAG, "configureFlutterEngine: unknow action: " + act);
             result.notImplemented();
@@ -134,16 +134,18 @@ public class MainActivity extends FlutterActivity implements ServiceConnection, 
     }
 
 
-    int i = 0;
 
-    private void startFeed(){
+    boolean stopGenerateEvt=false;
+
+    private void startFeed(EventChannel.EventSink events){
+        this.stopGenerateEvt=false;
         Runnable r= new Runnable() {
             @Override
             public void run() {
-                for(int i=0; i<10; i++){
-
+                for(int i=0; i<10000; i++){
+                    if (stopGenerateEvt) break;
                     try {
-                        Thread.sleep(1000);
+                        Thread.sleep(2000);
                         if(events!=null) events.success(i);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
@@ -152,21 +154,20 @@ public class MainActivity extends FlutterActivity implements ServiceConnection, 
 
             }
         };
-        Thread t=new Thread(r);
-        t.start();
-
+        // Thread t=new Thread(r);
+        getMainExecutor().execute(r);
+        // t.start();
     }
 
-    EventChannel.EventSink events;
 
     @Override
     public void onListen(Object arguments, EventChannel.EventSink events) {
         Log.w(TAG, "adding listener");
-        this.events=events;
+        startFeed(events);
     }
 
     @Override
     public void onCancel(Object arguments) {
-        this.events=null;
+        Log.d(TAG, "onCancel: cancelled");this.stopGenerateEvt=true;
     }
 }

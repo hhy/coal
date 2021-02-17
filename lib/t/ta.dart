@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:coal/java.dart';
 import 'package:flutter/services.dart';
@@ -12,17 +14,18 @@ class _Ta extends StatefulWidget {
 }
 
 class __TaState extends State<_Ta> {
-  String _s = '';
+  String _s = null;
   final api = Api();
   var _serviceOn = false;
   static const platform = const MethodChannel('samples.flutter.dev/battery');
   static const _channel =
       const MethodChannel('com.example.methodchannel/interop');
-  static const eventChannel = const EventChannel("samples.flutter.dev/stream");
+  static const eventChannel =
+      const EventChannel("samples.flutter.dev/bleStream");
 
   set s(String s) {
     setState(() {
-      _s = _s + s;
+      _s = _s ?? '' + s;
     });
   }
 
@@ -37,8 +40,30 @@ class __TaState extends State<_Ta> {
 
   get s => _s;
 
+  bool _isListening = false;
+
+  set isListening(bool v) {
+    setState(() {
+      _isListening = v;
+    });
+  }
+
+  get isListening => _isListening;
+
+  StreamSubscription _subscription;
+
+  set subscription(StreamSubscription s) {
+    print("start listenning");
+    setState(() {
+      _isListening = true;
+      _subscription = s;
+    });
+  }
+
+  get subscription => _subscription;
+
   Future<String> hijava() async {
-    String batteryLevel;
+    String msg;
     var fn = "peripheral";
     // fn = "getBatteryLevel";
     try {
@@ -47,13 +72,15 @@ class __TaState extends State<_Ta> {
       // final result = await platform.invokeMethod(fn);
       var act = serviceOn ? "off" : "on";
       final String result = await platform.invokeMethod(fn, {"act": act});
-      batteryLevel = '$fn result: $result';
+      msg = '$fn result: $result';
       serviceOn = !serviceOn;
     } on PlatformException catch (e) {
       print(e);
-      batteryLevel = "Failed to $fn: '${e.message}'.";
+      msg = "Failed to $fn: '${e.message}'.";
+    } catch (e) {
+      print(e);
     }
-    return batteryLevel;
+    return msg;
   }
 
   @override
@@ -72,18 +99,40 @@ class __TaState extends State<_Ta> {
         print("hi $a");
         s = a;
       },
-      child: Text('hi'),
+      child: Text(
+        serviceOn ? 'stop Service' : 'Start service',
+        textScaleFactor: 2.4,
+      ),
     );
     var btn2 = TextButton(
-        onPressed: () {
-          eventChannel
-              .receiveBroadcastStream()
-              .listen((data) {}, onError: () {});
-        },
-        child: Text("start listen"));
-    var msg = Text(s);
+      onPressed: () async {
+        if (isListening) {
+          await subscription.cancel();
+          isListening = false;
+          print("stopped listening");
+          return;
+        }
+
+        subscription = eventChannel.receiveBroadcastStream().listen((data) {
+          print('get data: $data');
+        }, onError: (e) {
+          print("error $e");
+        }, onDone: () {
+          print("done");
+        });
+      },
+      child: Text(isListening ? "stop listening" : "start listening",
+          textScaleFactor: 2.0,
+          style:
+              TextStyle(backgroundColor: Colors.amber, color: Colors.purple)),
+    );
+    var msg = Text(
+      s ?? "blank",
+      textScaleFactor: 1.5,
+    );
     var body = Column(
-      children: [btn, msg, btn2],
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [btn, Divider(), msg, btn2],
     );
     var home = Scaffold(
       appBar: appBar,
