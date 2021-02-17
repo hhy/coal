@@ -18,7 +18,7 @@ class __TaState extends State<_Ta> {
   static const platform = const MethodChannel('samples.flutter.dev/battery');
   static const _channel =
       const MethodChannel('com.example.methodchannel/interop');
-      static const eventChannel=const EventChannel("samples.flutter.dev/stream");
+  static const eventChannel = const EventChannel("samples.flutter.dev/stream");
 
   set s(String s) {
     setState(() {
@@ -74,10 +74,13 @@ class __TaState extends State<_Ta> {
       },
       child: Text('hi'),
     );
-    var btn2=TextButton(onPressed: (){
-       this.eventChannel.receiveBroadcastStream().listen(speechResultsHandler, onError: speechResultErrorHandler);
-
-    }, child:Text("start listen"));
+    var btn2 = TextButton(
+        onPressed: () {
+          eventChannel
+              .receiveBroadcastStream()
+              .listen((data) {}, onError: () {});
+        },
+        child: Text("start listen"));
     var msg = Text(s);
     var body = Column(
       children: [btn, msg, btn2],
